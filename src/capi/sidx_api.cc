@@ -141,7 +141,6 @@ SIDX_C_DLL IndexH Index_CreateWithStream( IndexPropertyH hProp,
 	VALIDATE_POINTER1(hProp, "Index_CreateWithStream", NULL);
 	Tools::PropertySet* prop = static_cast<Tools::PropertySet*>(hProp);
 
-
 	try {
 		return (IndexH) new Index(*prop, readNext);
 	} catch (Tools::Exception& e)
@@ -149,7 +148,6 @@ SIDX_C_DLL IndexH Index_CreateWithStream( IndexPropertyH hProp,
 		Error_PushError(RT_Failure,
 						e.what().c_str(),
 						"Index_CreateWithStream");
-		return NULL;
 	} catch (std::exception const& e)
 	{
 		Error_PushError(RT_Failure,
@@ -199,7 +197,6 @@ SIDX_C_DLL RTError Index_DeleteTPData( IndexH index,
 
   try {
     idx->index().deleteData(SpatialIndex::MovingRegion(pdMin, pdMax, pdVMin, pdVMax, tStart, tEnd, nDimension), id);
-    return RT_None;
   } catch (Tools::Exception& e)
   {
     Error_PushError(RT_Failure,
@@ -236,7 +233,6 @@ SIDX_C_DLL RTError Index_DeleteMVRData( IndexH index,
 
   try {
     idx->index().deleteData(SpatialIndex::TimeRegion(pdMin, pdMax, tStart, tEnd, nDimension), id);
-    return RT_None;
   } catch (Tools::Exception& e)
   {
     Error_PushError(RT_Failure,
@@ -270,7 +266,6 @@ SIDX_C_DLL RTError Index_DeleteData(  IndexH index,
 
 	try {
 		idx->index().deleteData(SpatialIndex::Region(pdMin, pdMax, nDimension), id);
-		return RT_None;
 	} catch (Tools::Exception& e)
 	{
 		Error_PushError(RT_Failure,
@@ -342,8 +337,6 @@ SIDX_C_DLL RTError Index_InsertTPData( IndexH index,
                 id);
 
     delete shape;
-    return RT_None;
-
   } catch (Tools::Exception& e)
   {
     Error_PushError(RT_Failure,
@@ -414,8 +407,6 @@ SIDX_C_DLL RTError Index_InsertMVRData( IndexH index,
                 id);
 
     delete shape;
-    return RT_None;
-
   } catch (Tools::Exception& e)
   {
     Error_PushError(RT_Failure,
@@ -483,8 +474,6 @@ SIDX_C_DLL RTError Index_InsertData(  IndexH index,
 								id);
 
 		delete shape;
-		return RT_None;
-
 	} catch (Tools::Exception& e)
 	{
 		Error_PushError(RT_Failure,
@@ -522,14 +511,16 @@ SIDX_C_DLL RTError Index_TPIntersects_obj(  IndexH index,
 {
   VALIDATE_POINTER1(index, "Index_TPIntersects_obj", RT_Failure);
   Index* idx = static_cast<Index*>(index);
-  int64_t nResultLimit, nStart;
 
+  int64_t nResultLimit, nStart;
+  SpatialIndex::MovingRegion* r = 0;
+  
   nResultLimit = idx->GetResultSetLimit();
   nStart = idx->GetResultSetOffset();
 
   ObjVisitor* visitor = new ObjVisitor;
   try {
-    SpatialIndex::MovingRegion* r = new SpatialIndex::MovingRegion(pdMin, pdMax, pdVMin, pdVMax, tStart, tEnd, nDimension);
+    r = new SpatialIndex::MovingRegion(pdMin, pdMax, pdVMin, pdVMax, tStart, tEnd, nDimension);
     idx->index().intersectsWithQuery(	*r,
                       *visitor);
 
@@ -544,6 +535,7 @@ SIDX_C_DLL RTError Index_TPIntersects_obj(  IndexH index,
             e.what().c_str(),
             "Index_TPIntersects_obj");
     delete visitor;
+    delete r;
     return RT_Failure;
   } catch (std::exception const& e)
   {
@@ -551,12 +543,14 @@ SIDX_C_DLL RTError Index_TPIntersects_obj(  IndexH index,
             e.what(),
             "Index_TPIntersects_obj");
     delete visitor;
+    delete r;
     return RT_Failure;
   } catch (...) {
     Error_PushError(RT_Failure,
             "Unknown Error",
             "Index_TPIntersects_obj");
     delete visitor;
+    delete r;
     return RT_Failure;
   }
   return RT_None;
@@ -574,13 +568,14 @@ SIDX_C_DLL RTError Index_MVRIntersects_obj(  IndexH index,
   VALIDATE_POINTER1(index, "Index_MVRIntersects_obj", RT_Failure);
   Index* idx = static_cast<Index*>(index);
   int64_t nResultLimit, nStart;
+  SpatialIndex::TimeRegion* r = 0;
 
   nResultLimit = idx->GetResultSetLimit();
   nStart = idx->GetResultSetOffset();
 
   ObjVisitor* visitor = new ObjVisitor;
   try {
-    SpatialIndex::TimeRegion* r = new SpatialIndex::TimeRegion(pdMin, pdMax, tStart, tEnd, nDimension);
+    r = new SpatialIndex::TimeRegion(pdMin, pdMax, tStart, tEnd, nDimension);
     idx->index().intersectsWithQuery(	*r,
                       *visitor);
 
@@ -594,6 +589,7 @@ SIDX_C_DLL RTError Index_MVRIntersects_obj(  IndexH index,
     Error_PushError(RT_Failure,
             e.what().c_str(),
             "Index_MVRIntersects_obj");
+    delete r;
     delete visitor;
     return RT_Failure;
   } catch (std::exception const& e)
@@ -601,12 +597,14 @@ SIDX_C_DLL RTError Index_MVRIntersects_obj(  IndexH index,
     Error_PushError(RT_Failure,
             e.what(),
             "Index_TPIntersects_obj");
+    delete r;
     delete visitor;
     return RT_Failure;
   } catch (...) {
     Error_PushError(RT_Failure,
             "Unknown Error",
             "Index_TPIntersects_obj");
+    delete r;
     delete visitor;
     return RT_Failure;
   }
@@ -628,8 +626,9 @@ SIDX_C_DLL RTError Index_Intersects_obj(  IndexH index,
 	nStart = idx->GetResultSetOffset();
 
 	ObjVisitor* visitor = new ObjVisitor;
+  SpatialIndex::Region* r = 0;
 	try {
-    SpatialIndex::Region* r = new SpatialIndex::Region(pdMin, pdMax, nDimension);
+    r = new SpatialIndex::Region(pdMin, pdMax, nDimension);
 		idx->index().intersectsWithQuery(	*r,
 											*visitor);
 
@@ -637,27 +636,27 @@ SIDX_C_DLL RTError Index_Intersects_obj(  IndexH index,
 
     delete r;
 		delete visitor;
-
 	} catch (Tools::Exception& e)
 	{
+    delete r;
+    delete visitor;
 		Error_PushError(RT_Failure,
 						e.what().c_str(),
 						"Index_Intersects_obj");
-		delete visitor;
-		return RT_Failure;
 	} catch (std::exception const& e)
 	{
+    delete r;
+    delete visitor;
 		Error_PushError(RT_Failure,
 						e.what(),
 						"Index_Intersects_obj");
 		delete visitor;
-		return RT_Failure;
 	} catch (...) {
+    delete r;
+    delete visitor;
 		Error_PushError(RT_Failure,
 						"Unknown Error",
 						"Index_Intersects_obj");
-		delete visitor;
-		return RT_Failure;
 	}
 	return RT_None;
 }
@@ -677,13 +676,14 @@ SIDX_C_DLL RTError Index_TPIntersects_id(  IndexH index,
   Index* idx = static_cast<Index*>(index);
 
   int64_t nResultLimit, nStart;
+  SpatialIndex::MovingRegion* r = 0;
 
   nResultLimit = idx->GetResultSetLimit();
   nStart = idx->GetResultSetOffset();
 
   IdVisitor* visitor = new IdVisitor;
   try {
-    SpatialIndex::MovingRegion* r = new SpatialIndex::MovingRegion(pdMin, pdMax, pdVMin, pdVMax, tStart, tEnd, nDimension);
+    r = new SpatialIndex::MovingRegion(pdMin, pdMax, pdVMin, pdVMax, tStart, tEnd, nDimension);
     idx->index().intersectsWithQuery(	*r,
                       *visitor);
 
@@ -691,12 +691,12 @@ SIDX_C_DLL RTError Index_TPIntersects_id(  IndexH index,
 
     delete r;
     delete visitor;
-
   } catch (Tools::Exception& e)
   {
     Error_PushError(RT_Failure,
             e.what().c_str(),
             "Index_TPIntersects_id");
+    delete r;
     delete visitor;
     return RT_Failure;
   } catch (std::exception const& e)
@@ -704,12 +704,14 @@ SIDX_C_DLL RTError Index_TPIntersects_id(  IndexH index,
     Error_PushError(RT_Failure,
             e.what(),
             "Index_TPIntersects_id");
+    delete r;
     delete visitor;
     return RT_Failure;
   } catch (...) {
     Error_PushError(RT_Failure,
             "Unknown Error",
             "Index_TPIntersects_id");
+    delete r;
     delete visitor;
     return RT_Failure;
   }
@@ -729,13 +731,14 @@ SIDX_C_DLL RTError Index_MVRIntersects_id(  IndexH index,
   Index* idx = static_cast<Index*>(index);
 
   int64_t nResultLimit, nStart;
+  SpatialIndex::TimeRegion* r = 0;
 
   nResultLimit = idx->GetResultSetLimit();
   nStart = idx->GetResultSetOffset();
 
   IdVisitor* visitor = new IdVisitor;
   try {
-    SpatialIndex::TimeRegion* r = new SpatialIndex::TimeRegion(pdMin, pdMax, tStart, tEnd, nDimension);
+    r = new SpatialIndex::TimeRegion(pdMin, pdMax, tStart, tEnd, nDimension);
     idx->index().intersectsWithQuery(	*r,
                       *visitor);
 
@@ -743,12 +746,12 @@ SIDX_C_DLL RTError Index_MVRIntersects_id(  IndexH index,
 
     delete r;
     delete visitor;
-
   } catch (Tools::Exception& e)
   {
     Error_PushError(RT_Failure,
             e.what().c_str(),
             "Index_MVRIntersects_id");
+    delete r;
     delete visitor;
     return RT_Failure;
   } catch (std::exception const& e)
@@ -756,12 +759,14 @@ SIDX_C_DLL RTError Index_MVRIntersects_id(  IndexH index,
     Error_PushError(RT_Failure,
             e.what(),
             "Index_MVRIntersects_id");
+    delete r;
     delete visitor;
     return RT_Failure;
   } catch (...) {
     Error_PushError(RT_Failure,
             "Unknown Error",
             "Index_MVRIntersects_id");
+    delete r;
     delete visitor;
     return RT_Failure;
   }
@@ -779,13 +784,14 @@ SIDX_C_DLL RTError Index_Intersects_id(	  IndexH index,
 	Index* idx = static_cast<Index*>(index);
 
 	int64_t nResultLimit, nStart;
+  SpatialIndex::Region* r = 0;
 
 	nResultLimit = idx->GetResultSetLimit();
   nStart = idx->GetResultSetOffset();
 
 	IdVisitor* visitor = new IdVisitor;
 	try {
-    SpatialIndex::Region* r = new SpatialIndex::Region(pdMin, pdMax, nDimension);
+    r = new SpatialIndex::Region(pdMin, pdMax, nDimension);
 		idx->index().intersectsWithQuery(	*r,
 											*visitor);
 
@@ -799,6 +805,7 @@ SIDX_C_DLL RTError Index_Intersects_id(	  IndexH index,
 		Error_PushError(RT_Failure,
 						e.what().c_str(),
 						"Index_Intersects_id");
+    delete r;
 		delete visitor;
 		return RT_Failure;
 	} catch (std::exception const& e)
@@ -806,12 +813,14 @@ SIDX_C_DLL RTError Index_Intersects_id(	  IndexH index,
 		Error_PushError(RT_Failure,
 						e.what(),
 						"Index_Intersects_id");
+    delete r;
 		delete visitor;
 		return RT_Failure;
 	} catch (...) {
 		Error_PushError(RT_Failure,
 						"Unknown Error",
 						"Index_Intersects_id");
+    delete r;
 		delete visitor;
 		return RT_Failure;
 	}
@@ -830,10 +839,11 @@ SIDX_C_DLL RTError Index_TPIntersects_count(	  IndexH index,
 {
   VALIDATE_POINTER1(index, "Index_TPIntersects_count", RT_Failure);
   Index* idx = static_cast<Index*>(index);
+  SpatialIndex::MovingRegion* r = 0;
 
   CountVisitor* visitor = new CountVisitor;
   try {
-    SpatialIndex::MovingRegion* r = new SpatialIndex::MovingRegion(pdMin, pdMax, pdVMin, pdVMax, tStart, tEnd, nDimension);
+    r = new SpatialIndex::MovingRegion(pdMin, pdMax, pdVMin, pdVMax, tStart, tEnd, nDimension);
     idx->index().intersectsWithQuery(	*r,
                       *visitor);
 
@@ -841,12 +851,12 @@ SIDX_C_DLL RTError Index_TPIntersects_count(	  IndexH index,
 
     delete r;
     delete visitor;
-
   } catch (Tools::Exception& e)
   {
     Error_PushError(RT_Failure,
             e.what().c_str(),
             "Index_TPIntersects_count");
+    delete r;
     delete visitor;
     return RT_Failure;
   } catch (std::exception const& e)
@@ -854,12 +864,14 @@ SIDX_C_DLL RTError Index_TPIntersects_count(	  IndexH index,
     Error_PushError(RT_Failure,
             e.what(),
             "Index_TPIntersects_count");
+    delete r;
     delete visitor;
     return RT_Failure;
   } catch (...) {
     Error_PushError(RT_Failure,
             "Unknown Error",
             "Index_TPIntersects_count");
+    delete r;
     delete visitor;
     return RT_Failure;
   }
@@ -876,10 +888,11 @@ SIDX_C_DLL RTError Index_MVRIntersects_count(	  IndexH index,
 {
   VALIDATE_POINTER1(index, "Index_MVRIntersects_count", RT_Failure);
   Index* idx = static_cast<Index*>(index);
+  SpatialIndex::TimeRegion* r = 0;
 
   CountVisitor* visitor = new CountVisitor;
   try {
-    SpatialIndex::TimeRegion* r = new SpatialIndex::TimeRegion(pdMin, pdMax, tStart, tEnd, nDimension);
+    r = new SpatialIndex::TimeRegion(pdMin, pdMax, tStart, tEnd, nDimension);
     idx->index().intersectsWithQuery(	*r,
                       *visitor);
 
@@ -893,6 +906,7 @@ SIDX_C_DLL RTError Index_MVRIntersects_count(	  IndexH index,
     Error_PushError(RT_Failure,
             e.what().c_str(),
             "Index_MVRIntersects_count");
+    delete r;
     delete visitor;
     return RT_Failure;
   } catch (std::exception const& e)
@@ -900,12 +914,14 @@ SIDX_C_DLL RTError Index_MVRIntersects_count(	  IndexH index,
     Error_PushError(RT_Failure,
             e.what(),
             "Index_MVRIntersects_count");
+    delete r;
     delete visitor;
     return RT_Failure;
   } catch (...) {
     Error_PushError(RT_Failure,
             "Unknown Error",
             "Index_MVRIntersects_count");
+    delete r;
     delete visitor;
     return RT_Failure;
   }
@@ -920,10 +936,11 @@ SIDX_C_DLL RTError Index_Intersects_count(	  IndexH index,
 {
 	VALIDATE_POINTER1(index, "Index_Intersects_count", RT_Failure);
 	Index* idx = static_cast<Index*>(index);
+  SpatialIndex::Region* r = 0;
 
 	CountVisitor* visitor = new CountVisitor;
 	try {
-    SpatialIndex::Region* r = new SpatialIndex::Region(pdMin, pdMax, nDimension);
+    r = new SpatialIndex::Region(pdMin, pdMax, nDimension);
 		idx->index().intersectsWithQuery(	*r,
 											*visitor);
 
@@ -937,6 +954,7 @@ SIDX_C_DLL RTError Index_Intersects_count(	  IndexH index,
 		Error_PushError(RT_Failure,
 						e.what().c_str(),
 						"Index_Intersects_count");
+    delete r;
 		delete visitor;
 		return RT_Failure;
 	} catch (std::exception const& e)
@@ -944,12 +962,14 @@ SIDX_C_DLL RTError Index_Intersects_count(	  IndexH index,
 		Error_PushError(RT_Failure,
 						e.what(),
 						"Index_Intersects_count");
+    delete r;
 		delete visitor;
 		return RT_Failure;
 	} catch (...) {
 		Error_PushError(RT_Failure,
 						"Unknown Error",
 						"Index_Intersects_count");
+    delete r;
 		delete visitor;
 		return RT_Failure;
 	}
@@ -967,13 +987,14 @@ SIDX_C_DLL RTError Index_SegmentIntersects_obj(  IndexH index,
 	Index* idx = static_cast<Index*>(index);
 
   int64_t nResultLimit, nStart;
+  SpatialIndex::LineSegment* l = 0;
 
   nResultLimit = idx->GetResultSetLimit();
   nStart = idx->GetResultSetOffset();
 
 	ObjVisitor* visitor = new ObjVisitor;
 	try {
-    SpatialIndex::LineSegment* l = new SpatialIndex::LineSegment(pdStartPoint, pdEndPoint, nDimension);
+    l = new SpatialIndex::LineSegment(pdStartPoint, pdEndPoint, nDimension);
 		idx->index().intersectsWithQuery(	*l,
 											*visitor);
 
@@ -987,6 +1008,7 @@ SIDX_C_DLL RTError Index_SegmentIntersects_obj(  IndexH index,
 		Error_PushError(RT_Failure,
 						e.what().c_str(),
 						"Index_Intersects_obj");
+    delete l;
 		delete visitor;
 		return RT_Failure;
 	} catch (std::exception const& e)
@@ -994,12 +1016,14 @@ SIDX_C_DLL RTError Index_SegmentIntersects_obj(  IndexH index,
 		Error_PushError(RT_Failure,
 						e.what(),
 						"Index_Intersects_obj");
+    delete l;
 		delete visitor;
 		return RT_Failure;
 	} catch (...) {
 		Error_PushError(RT_Failure,
 						"Unknown Error",
 						"Index_Intersects_obj");
+    delete l;
 		delete visitor;
 		return RT_Failure;
 	}
@@ -1016,13 +1040,14 @@ SIDX_C_DLL RTError Index_SegmentIntersects_id(	  IndexH index,
 	VALIDATE_POINTER1(index, "Index_Intersects_id", RT_Failure);
 	Index* idx = static_cast<Index*>(index);
   int64_t nResultLimit, nStart;
+  SpatialIndex::LineSegment* l = 0;
 
   nResultLimit = idx->GetResultSetLimit();
   nStart = idx->GetResultSetOffset();
 
 	IdVisitor* visitor = new IdVisitor;
 	try {
-    SpatialIndex::LineSegment* l = new SpatialIndex::LineSegment(pdStartPoint, pdEndPoint, nDimension);
+    l = new SpatialIndex::LineSegment(pdStartPoint, pdEndPoint, nDimension);
 		idx->index().intersectsWithQuery(	*l,
 											*visitor);
 
@@ -1036,6 +1061,7 @@ SIDX_C_DLL RTError Index_SegmentIntersects_id(	  IndexH index,
 		Error_PushError(RT_Failure,
 						e.what().c_str(),
 						"Index_Intersects_id");
+    delete l;
 		delete visitor;
 		return RT_Failure;
 	} catch (std::exception const& e)
@@ -1043,12 +1069,14 @@ SIDX_C_DLL RTError Index_SegmentIntersects_id(	  IndexH index,
 		Error_PushError(RT_Failure,
 						e.what(),
 						"Index_Intersects_id");
+    delete l;
 		delete visitor;
 		return RT_Failure;
 	} catch (...) {
 		Error_PushError(RT_Failure,
 						"Unknown Error",
 						"Index_Intersects_id");
+    delete l;
 		delete visitor;
 		return RT_Failure;
 	}
@@ -1063,10 +1091,11 @@ SIDX_C_DLL RTError Index_SegmentIntersects_count(	  IndexH index,
 {
 	VALIDATE_POINTER1(index, "Index_Intersects_count", RT_Failure);
 	Index* idx = static_cast<Index*>(index);
+  SpatialIndex::LineSegment* l = 0;
 
 	CountVisitor* visitor = new CountVisitor;
 	try {
-        SpatialIndex::LineSegment* l = new SpatialIndex::LineSegment(pdStartPoint, pdEndPoint, nDimension);
+    l = new SpatialIndex::LineSegment(pdStartPoint, pdEndPoint, nDimension);
 		idx->index().intersectsWithQuery(	*l,
 											*visitor);
 
@@ -1080,6 +1109,7 @@ SIDX_C_DLL RTError Index_SegmentIntersects_count(	  IndexH index,
 		Error_PushError(RT_Failure,
 						e.what().c_str(),
 						"Index_Intersects_count");
+    delete l;
 		delete visitor;
 		return RT_Failure;
 	} catch (std::exception const& e)
@@ -1087,12 +1117,14 @@ SIDX_C_DLL RTError Index_SegmentIntersects_count(	  IndexH index,
 		Error_PushError(RT_Failure,
 						e.what(),
 						"Index_Intersects_count");
+    delete l;
 		delete visitor;
 		return RT_Failure;
 	} catch (...) {
 		Error_PushError(RT_Failure,
 						"Unknown Error",
 						"Index_Intersects_count");
+    delete l;
 		delete visitor;
 		return RT_Failure;
 	}
@@ -1113,6 +1145,7 @@ SIDX_C_DLL RTError Index_TPNearestNeighbors_id(IndexH index,
   VALIDATE_POINTER1(index, "Index_TPNearestNeighbors_id", RT_Failure);
   Index* idx = static_cast<Index*>(index);
   int64_t nResultLimit, nStart;
+  SpatialIndex::MovingRegion* r = 0;
 
   nResultLimit = idx->GetResultSetLimit();
   nStart = idx->GetResultSetOffset();
@@ -1120,7 +1153,7 @@ SIDX_C_DLL RTError Index_TPNearestNeighbors_id(IndexH index,
   IdVisitor* visitor = new IdVisitor;
 
   try {
-    SpatialIndex::MovingRegion* r = new SpatialIndex::MovingRegion(pdMin, pdMax, pdVMin, pdVMax, tStart, tEnd, nDimension);
+    r = new SpatialIndex::MovingRegion(pdMin, pdMax, pdVMin, pdVMax, tStart, tEnd, nDimension);
     idx->index().nearestNeighborQuery(	static_cast<uint32_t>(*nResults),
                       *r,
                       *visitor);
@@ -1135,6 +1168,7 @@ SIDX_C_DLL RTError Index_TPNearestNeighbors_id(IndexH index,
     Error_PushError(RT_Failure,
             e.what().c_str(),
             "Index_TPNearestNeighbors_id");
+    delete r;
     delete visitor;
     return RT_Failure;
   } catch (std::exception const& e)
@@ -1142,12 +1176,14 @@ SIDX_C_DLL RTError Index_TPNearestNeighbors_id(IndexH index,
     Error_PushError(RT_Failure,
             e.what(),
             "Index_TPNearestNeighbors_id");
+    delete r;
     delete visitor;
     return RT_Failure;
   } catch (...) {
     Error_PushError(RT_Failure,
             "Unknown Error",
             "Index_TPNearestNeighbors_id");
+    delete r;
     delete visitor;
     return RT_Failure;
   }
@@ -1166,6 +1202,7 @@ SIDX_C_DLL RTError Index_MVRNearestNeighbors_id(IndexH index,
   VALIDATE_POINTER1(index, "Index_MVRNearestNeighbors_id", RT_Failure);
   Index* idx = static_cast<Index*>(index);
   int64_t nResultLimit, nStart;
+  SpatialIndex::TimeRegion* r = 0;
 
   nResultLimit = idx->GetResultSetLimit();
   nStart = idx->GetResultSetOffset();
@@ -1173,7 +1210,7 @@ SIDX_C_DLL RTError Index_MVRNearestNeighbors_id(IndexH index,
   IdVisitor* visitor = new IdVisitor;
 
   try {
-    SpatialIndex::TimeRegion* r = new SpatialIndex::TimeRegion(pdMin, pdMax, tStart, tEnd, nDimension);
+    r = new SpatialIndex::TimeRegion(pdMin, pdMax, tStart, tEnd, nDimension);
     idx->index().nearestNeighborQuery(	*nResults,
                       *r,
                       *visitor);
@@ -1188,6 +1225,7 @@ SIDX_C_DLL RTError Index_MVRNearestNeighbors_id(IndexH index,
     Error_PushError(RT_Failure,
             e.what().c_str(),
             "Index_MVRNearestNeighbors_id");
+    delete r;
     delete visitor;
     return RT_Failure;
   } catch (std::exception const& e)
@@ -1195,12 +1233,14 @@ SIDX_C_DLL RTError Index_MVRNearestNeighbors_id(IndexH index,
     Error_PushError(RT_Failure,
             e.what(),
             "Index_MVRNearestNeighbors_id");
+    delete r;
     delete visitor;
     return RT_Failure;
   } catch (...) {
     Error_PushError(RT_Failure,
             "Unknown Error",
             "Index_MVRNearestNeighbors_id");
+    delete r;
     delete visitor;
     return RT_Failure;
   }
@@ -1217,6 +1257,7 @@ SIDX_C_DLL RTError Index_NearestNeighbors_id(IndexH index,
 	VALIDATE_POINTER1(index, "Index_NearestNeighbors_id", RT_Failure);
 	Index* idx = static_cast<Index*>(index);
   int64_t nResultLimit, nStart;
+  SpatialIndex::Region* r = 0;
 
   nResultLimit = idx->GetResultSetLimit();
   nStart = idx->GetResultSetOffset();
@@ -1224,7 +1265,7 @@ SIDX_C_DLL RTError Index_NearestNeighbors_id(IndexH index,
 	IdVisitor* visitor = new IdVisitor;
 
 	try {
-    SpatialIndex::Region* r = new SpatialIndex::Region(pdMin, pdMax, nDimension);
+    r = new SpatialIndex::Region(pdMin, pdMax, nDimension);
 
 		idx->index().nearestNeighborQuery(	static_cast<uint32_t>(*nResults),
 											*r,
@@ -1240,6 +1281,7 @@ SIDX_C_DLL RTError Index_NearestNeighbors_id(IndexH index,
 		Error_PushError(RT_Failure,
 						e.what().c_str(),
 						"Index_NearestNeighbors_id");
+    delete r;
 		delete visitor;
 		return RT_Failure;
 	} catch (std::exception const& e)
@@ -1247,12 +1289,14 @@ SIDX_C_DLL RTError Index_NearestNeighbors_id(IndexH index,
 		Error_PushError(RT_Failure,
 						e.what(),
 						"Index_NearestNeighbors_id");
+    delete r;
 		delete visitor;
 		return RT_Failure;
 	} catch (...) {
 		Error_PushError(RT_Failure,
 						"Unknown Error",
 						"Index_NearestNeighbors_id");
+    delete r;
 		delete visitor;
 		return RT_Failure;
 	}
@@ -1274,13 +1318,14 @@ SIDX_C_DLL RTError Index_TPNearestNeighbors_obj(IndexH index,
   Index* idx = static_cast<Index*>(index);
 
   int64_t nResultLimit, nStart;
+  SpatialIndex::MovingRegion* r = 0;
 
   nResultLimit = idx->GetResultSetLimit();
   nStart = idx->GetResultSetOffset();
 
   ObjVisitor* visitor = new ObjVisitor;
   try {
-    SpatialIndex::MovingRegion* r = new SpatialIndex::MovingRegion(pdMin, pdMax, pdVMin, pdVMax, tStart, tEnd, nDimension);
+    r = new SpatialIndex::MovingRegion(pdMin, pdMax, pdVMin, pdVMax, tStart, tEnd, nDimension);
 
     idx->index().nearestNeighborQuery(	static_cast<uint32_t>(*nResults),
                       *r,
@@ -1296,6 +1341,7 @@ SIDX_C_DLL RTError Index_TPNearestNeighbors_obj(IndexH index,
     Error_PushError(RT_Failure,
             e.what().c_str(),
             "Index_TPNearestNeighbors_obj");
+    delete r;
     delete visitor;
     return RT_Failure;
   } catch (std::exception const& e)
@@ -1303,6 +1349,7 @@ SIDX_C_DLL RTError Index_TPNearestNeighbors_obj(IndexH index,
     Error_PushError(RT_Failure,
             e.what(),
             "Index_TPNearestNeighbors_obj");
+    delete r;
     delete visitor;
     return RT_Failure;
   } catch (...) {
@@ -1328,13 +1375,14 @@ SIDX_C_DLL RTError Index_MVRNearestNeighbors_obj(IndexH index,
   Index* idx = static_cast<Index*>(index);
 
   int64_t nResultLimit, nStart;
+  SpatialIndex::TimeRegion* r = 0;
 
   nResultLimit = idx->GetResultSetLimit();
   nStart = idx->GetResultSetOffset();
 
   ObjVisitor* visitor = new ObjVisitor;
   try {
-    SpatialIndex::TimeRegion* r = new SpatialIndex::TimeRegion(pdMin, pdMax, tStart, tEnd, nDimension);
+    r = new SpatialIndex::TimeRegion(pdMin, pdMax, tStart, tEnd, nDimension);
 
     idx->index().nearestNeighborQuery(	*nResults,
                       *r,
@@ -1350,6 +1398,7 @@ SIDX_C_DLL RTError Index_MVRNearestNeighbors_obj(IndexH index,
     Error_PushError(RT_Failure,
             e.what().c_str(),
             "Index_MVRNearestNeighbors_obj");
+    delete r;
     delete visitor;
     return RT_Failure;
   } catch (std::exception const& e)
@@ -1357,12 +1406,14 @@ SIDX_C_DLL RTError Index_MVRNearestNeighbors_obj(IndexH index,
     Error_PushError(RT_Failure,
             e.what(),
             "Index_MVRNearestNeighbors_obj");
+    delete r;
     delete visitor;
     return RT_Failure;
   } catch (...) {
     Error_PushError(RT_Failure,
             "Unknown Error",
             "Index_NearestNeighbors_obj");
+    delete r;
     delete visitor;
     return RT_Failure;
   }
@@ -1380,13 +1431,14 @@ SIDX_C_DLL RTError Index_NearestNeighbors_obj(IndexH index,
 	Index* idx = static_cast<Index*>(index);
 
   int64_t nResultLimit, nStart;
+  SpatialIndex::Region* r = 0;
 
   nResultLimit = idx->GetResultSetLimit();
   nStart = idx->GetResultSetOffset();
 
 	ObjVisitor* visitor = new ObjVisitor;
 	try {
-    SpatialIndex::Region* r = new SpatialIndex::Region(pdMin, pdMax, nDimension);
+    r = new SpatialIndex::Region(pdMin, pdMax, nDimension);
 
 		idx->index().nearestNeighborQuery(	static_cast<uint32_t>(*nResults),
 											*r,
@@ -1402,6 +1454,7 @@ SIDX_C_DLL RTError Index_NearestNeighbors_obj(IndexH index,
 		Error_PushError(RT_Failure,
 						e.what().c_str(),
 						"Index_NearestNeighbors_obj");
+    delete r;
 		delete visitor;
 		return RT_Failure;
 	} catch (std::exception const& e)
@@ -1409,12 +1462,14 @@ SIDX_C_DLL RTError Index_NearestNeighbors_obj(IndexH index,
 		Error_PushError(RT_Failure,
 						e.what(),
 						"Index_NearestNeighbors_obj");
+    delete r;
 		delete visitor;
 		return RT_Failure;
 	} catch (...) {
 		Error_PushError(RT_Failure,
 						"Unknown Error",
 						"Index_NearestNeighbors_obj");
+    delete r;
 		delete visitor;
 		return RT_Failure;
 	}
@@ -1588,7 +1643,7 @@ SIDX_C_DLL RTError Index_GetLeaves(	IndexH index,
 	Index* idx = static_cast<Index*>(index);
 
 	std::vector<LeafQueryResult>::const_iterator i;
-	LeafQuery* query = new LeafQuery;
+	LeafQuery* query = 0; 
 
 	// Fetch the dimensionality of the index
 	Tools::PropertySet ps;
@@ -1610,6 +1665,7 @@ SIDX_C_DLL RTError Index_GetLeaves(	IndexH index,
 	*nDimension = var.m_val.ulVal;
 
 	try {
+    query = new LeafQuery;
 		idx->index().queryStrategy( *query);
 
 		const std::vector<LeafQueryResult>& results = query->GetResults();
@@ -1687,16 +1743,16 @@ SIDX_C_DLL RTError IndexItem_GetData( IndexItemH item,
 {
 	VALIDATE_POINTER1(item, "IndexItem_GetData", RT_Failure);
 	SpatialIndex::IData* it = static_cast<SpatialIndex::IData*>(item);
-    uint8_t* p_data;
-    uint32_t* l= new uint32_t;
+  uint8_t* p_data;
+  uint32_t* l= new uint32_t;
 
 	it->getData(*l,&p_data);
 	*length = (uint64_t)*l;
 	*data = (uint8_t*) malloc (*length * sizeof(uint8_t));
 
 	memcpy(*data, p_data, *length);
-        delete[] p_data;
-        delete l;
+  delete[] p_data;
+  delete l;
 	return RT_None;
 
 }
@@ -1738,6 +1794,8 @@ SIDX_C_DLL RTError IndexItem_GetBounds(	  IndexItemH item,
 		Error_PushError(RT_Failure,
 						"Unable to allocation bounds array(s)",
 						"IndexItem_GetBounds");
+    delete bounds;
+    delete s;
 		return RT_Failure;
 	}
 
