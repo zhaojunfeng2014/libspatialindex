@@ -66,8 +66,6 @@ check_function_exists(memcpy HAVE_MEMCPY)
 check_function_exists(bcopy HAVE_BCOPY)
 
 INCLUDE (CheckIncludeFiles)
-check_include_files(pthread.h HAVE_PTHREAD_H)
-
 
 if (HAVE_SRAND48)
     add_definitions(-DHAVE_SRAND48=1)
